@@ -37,7 +37,7 @@ app.get("/", (req, res) => {
   res.send("Yes the server is live dude, go to bed.");
 });
 
-app.post("/dialogflow-fulfillment", express.json(), (req, res) => {
+app.post("/booking", express.json(), (req, res) => {
   const agent = new dfff.WebhookClient({
     request: req,
     response: res,

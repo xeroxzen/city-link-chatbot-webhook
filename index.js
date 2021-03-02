@@ -61,38 +61,38 @@ app.post("/booking", express.json(), (req, res) => {
     );
   }
 
-
   function askName(agent) {
     agent.add("I am an AI assistant, you can call me Lynx");
   }
 
   // travel destination booking error
- async function travelDestinationErrorChecking(agent) {
+  async function travelDestinationErrorChecking(agent) {
     let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
     let travelTo = agent.context.get("capture-date").parameters.travelTo;
 
-  //simplify
+    //simplify
     var trip = `${travelFrom} to ${travelTo}`;
 
     if (travelFrom == travelTo) {
       agent.add(
-          `The trip departure point cannot be the same as the destination.`
+        `The trip departure point cannot be the same as the destination.`
       );
-  }
-  //make sure we have a fare for this trip
-  else{
-    await db.collection("trips")
-        .where("to","=",travelFrom)
-        .where("from","=",travelTo)
+    }
+    //make sure we have a fare for this trip
+    else {
+      await db
+        .collection("trips")
+        .where("to", "=", travelFrom)
+        .where("from", "=", travelTo)
         .limit(1)
         .get()
-        .then(snapshot => {
+        .then((snapshot) => {
           if (snapshot.size == 0)
             agent.add("We currently do not cover the route you selected!");
-            agent.add(new Suggestion(`Start Over`));
-            agent.add(new Suggestion(`Cancel`));
-      });
-  }
+          agent.add(new Suggestion(`Start Over`));
+          agent.add(new Suggestion(`Cancel`));
+        });
+    }
   }
 
   // Starts here
@@ -140,61 +140,67 @@ app.post("/booking", express.json(), (req, res) => {
       // Suggestions
       agent.add(new Suggestion(`Start Over`));
       agent.add(new Suggestion(`Cancel`));
-    } 
-    else{
-    await db.collection("trips")
-        .where("to","==",travelTo)
-        .where("from","==",travelFrom)
+    } else {
+      await db
+        .collection("trips")
+        .where("to", "==", travelTo)
+        .where("from", "==", travelFrom)
         .limit(1)
         .get()
-        .then(snapshot => {
-          if (snapshot.size == 0){
+        .then((snapshot) => {
+          if (snapshot.size == 0) {
             agent.add("We currently do not cover the route you selected!");
             agent.add(new Suggestion(`Start Over`));
-          agent.add(new Suggestion(`Cancel`));
-          }
-          else{
+            agent.add(new Suggestion(`Cancel`));
+          } else {
             agent.add(
               `On what date would you like to travel? \n\nExample: 30 January or next week Friday`
             );
           }
-      })
-      .catch(ex => {
-        console.log("Something is really wrong", ex);
-      });
-  }
+        })
+        .catch((ex) => {
+          console.log("Something is really wrong", ex);
+        });
+    }
   }
 
-  async function askTime(agent){
+  async function askTime(agent) {
     let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
     let travelTo = agent.context.get("capture-date").parameters.travelTo;
     let travelDate = agent.context.get("capture-schedule").parameters[
       "travel-date"
     ];
 
-    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     let day = days[Date(travelDate).getDay()];
-    let day = "Monday";
-    await db.collection("trips")
-      .where("to","=",travelFrom)
-      .where("from","=",travelTo)
-      .where("days." + day + ".id" , "==" , day)
+    await db
+      .collection("trips")
+      .where("to", "=", travelFrom)
+      .where("from", "=", travelTo)
+      .where("days." + day + ".id", "==", day)
       .limit(1)
       .get()
-      .then(snapshot => {
-        if (snapshot.size == 0){
+      .then((snapshot) => {
+        if (snapshot.size == 0) {
           agent.add("The date you selected has no coach services!");
           agent.add(new Suggestion(`Start Over`));
-        agent.add(new Suggestion(`Cancel`));
-        }
-        else{
-          let fare =  snapshot.docs[0].data();
+          agent.add(new Suggestion(`Cancel`));
+        } else {
+          let fare = snapshot.docs[0].data();
           agent.add("Choose your preferred Departure time?");
-          fare.days.forEach((key,value)=>{
+          fare.days.forEach((key, value) => {
             agent.add(new Suggestion(key));
           });
         }
-    });
+      });
   }
 
   // Get Traveller's Name
@@ -203,7 +209,7 @@ app.post("/booking", express.json(), (req, res) => {
     agent.add("May I have your first name and surname to finish booking?");
   }
 
-  function askEmail(agent){
+  function askEmail(agent) {
     agent.add("May i have your email address");
   }
 
@@ -267,8 +273,10 @@ app.post("/booking", express.json(), (req, res) => {
     var firstname = agent.context.get("capture-fullname").parameters.firstname;
     var lastname = agent.context.get("capture-fullname").parameters.lastname;
     var paymentEmail = agent.context.get("capture-email").parameters.email;
-    var paymentMethod = agent.context.get("capture-payment-method").parameters.paymentType;
-    var paymentAccount = agent.context.get("capture-payment-account").parameters.paymentAccount;
+    var paymentMethod = agent.context.get("capture-payment-method").parameters
+      .paymentType;
+    var paymentAccount = agent.context.get("capture-payment-account").parameters
+      .paymentAccount;
     var person = agent.context.get("capture-fullname").parameters.person;
     var phone = agent.context.get("confirm-ticket").parameters.phoneNumber;
     var travelFrom = agent.context.get("capture-to").parameters.travelFrom;
@@ -282,34 +290,41 @@ app.post("/booking", express.json(), (req, res) => {
 
     var amount = 0;
     // get fare
-    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     let day = days[Date(travelDate).getDay()];
-     await db.collection("trips")
-      .where("to","=",travelFrom)
-      .where("from","=",travelTo)
-      .where("days." + day + ".id" , "==" , day)
+    await db
+      .collection("trips")
+      .where("to", "=", travelFrom)
+      .where("from", "=", travelTo)
+      .where("days." + day + ".id", "==", day)
       .limit(1)
       .get()
-      .then(snapshot => {
-        if (snapshot.size == 0){
+      .then((snapshot) => {
+        if (snapshot.size == 0) {
           agent.add("We currently do not cover the route you select!");
           agent.add(new Suggestion(`Start Over`));
-        agent.add(new Suggestion(`Cancel`));
-        }
-        else{
-          let fare =  snapshot.docs[0].data();
-        if (travelTime in fare.days[day]){
-          amount = fare.days[day][travelTime];
-        }         
-          else{
+          agent.add(new Suggestion(`Cancel`));
+        } else {
+          let fare = snapshot.docs[0].data();
+          if (travelTime in fare.days[day]) {
+            amount = fare.days[day][travelTime];
+          } else {
             agent.add("The date you selected has no coach services!");
             agent.add(new Suggestion(`Start Over`));
-          agent.add(new Suggestion(`Cancel`));
+            agent.add(new Suggestion(`Cancel`));
           }
         }
-    });
+      });
 
-    if (amount !== 0 && amount !== NaN && amount !== "undefined"){
+    if (amount !== 0 && amount !== NaN && amount !== "undefined") {
       // Save human readable date
       const dateObject = new Date();
 
@@ -336,29 +351,30 @@ app.post("/booking", express.json(), (req, res) => {
       );
 
       agent.add(
-          `BOOKING CONFIRMATION \n\nFull Name: ${
-            fullname || person
-          } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
-    );
+        `BOOKING CONFIRMATION \n\nFull Name: ${
+          fullname || person
+        } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
+      );
 
       //Telegram and Messenger
 
       let paynow = new Paynow("INTEGRATION_ID", "INTEGRATION_KEY");
       let payment = paynow.createPayment(ticketId, paymentEmail);
       payment.add(`Bus fare(${trip})`, amount);
-      paynow.sendMobile(payment, paymentAccount, paymentMethod.toLowerCase())
-        .then(function(response) {
-          if(response.success) {     
-          var paynowReference = response.pollUrl;
-              //save the id
-              var id = uuid();
-              agent.add(
+      paynow
+        .sendMobile(payment, paymentAccount, paymentMethod.toLowerCase())
+        .then(function (response) {
+          if (response.success) {
+            var paynowReference = response.pollUrl;
+            //save the id
+            var id = uuid();
+            agent.add(
               `BOOKING CONFIRMATION \n\nFull Name: ${
                 fullname || person
               } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
-        );
-              // save to db
-              return db
+            );
+            // save to db
+            return db
               .collection("tickets")
               .add({
                 //firstname: firstname,
@@ -378,23 +394,24 @@ app.post("/booking", express.json(), (req, res) => {
                 paymentAccount: paymentAccount,
                 paynowReference: paynowReference,
                 paymentEmail: paymentEmail,
-            })
-            .then(
-              (ref) =>
-                //fetching free slots
+              })
+              .then(
+                (ref) =>
+                  //fetching free slots
 
-                console.log("Ticket successfully added."),
-              agent.add(`Your ticket reservation was successful.`)
-            );
+                  console.log("Ticket successfully added."),
+                agent.add(`Your ticket reservation was successful.`)
+              );
           } else {
             gent.add("Whoops something went wrong!");
             console.log(response.error);
           }
-      }).catch(ex => {
-        agent.add("Whoops something went wrong!");
-        console.log("Something is really wrong", ex)
-      });  
-  }
+        })
+        .catch((ex) => {
+          agent.add("Whoops something went wrong!");
+          console.log("Something is really wrong", ex);
+        });
+    }
   }
 
   //finished
@@ -450,7 +467,7 @@ app.post("/booking", express.json(), (req, res) => {
   intentMap.set("confirmationMessage", confirmationMessage);
   intentMap.set("viewTickets", viewTickets);
   intentMap.set("issuedTo", issuedTo);
-  intentMap.set("Ask.booking.schedule",askTime);
+  intentMap.set("Ask.booking.schedule", askTime);
   intentMap.set("somethingNice", somethingNice);
   intentMap.set("somethingCrazy", somethingCrazy);
   // intentMap.set(

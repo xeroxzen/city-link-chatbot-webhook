@@ -16,6 +16,7 @@
     "express": "^4.17.1",
     "firebase-admin": "^9.3.0",
     "moment": "^2.29.1",
+    "paynow": "^1.0.9",
     "uniqid": "^5.2.0",
     "uuid": "^8.3.2"
   },

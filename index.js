@@ -2,8 +2,9 @@
 // Author: Andile Jaden Mbele
 // Program: index.js
 // Purpose: webhook for City Link virtual assistant
-
+//https://lynx-heroku.herokuapp.com/booking
 const express = require("express");
+const { Paynow } = require("paynow");
 const app = express();
 const dfff = require("dialogflow-fulfillment");
 const { Card, Suggestion } = require("dialogflow-fulfillment");
@@ -60,54 +61,42 @@ app.post("/booking", express.json(), (req, res) => {
     );
   }
 
+
   function askName(agent) {
     agent.add("I am an AI assistant, you can call me Lynx");
   }
 
-  function bitOff(agent) {
-    agent.add("That's what I'm trying to figure out...");
+  // travel destination booking error
+ async function travelDestinationErrorChecking(agent) {
+    let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
+    let travelTo = agent.context.get("capture-date").parameters.travelTo;
+
+  //simplify
+    var trip = `${travelFrom} to ${travelTo}`;
+
+    if (travelFrom == travelTo) {
+      agent.add(
+          `The trip departure point cannot be the same as the destination.`
+      );
+  }
+  //make sure we have a fare for this trip
+  else{
+    await db.collection("trips")
+        .where("to","=",travelFrom)
+        .where("from","=",travelTo)
+        .limit(1)
+        .get()
+        .then(snapshot => {
+          if (snapshot.size == 0)
+            agent.add("We currently do not cover the route you selected!");
+            agent.add(new Suggestion(`Start Over`));
+            agent.add(new Suggestion(`Cancel`));
+      });
+  }
   }
 
-  // travel destination booking error
-  // function travelDestinationErrorChecking(agent) {
-  //   let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
-  //   let travelTo = agent.context.get("capture-date").parameters.travelTo;
-
-  //   // simplify
-  //   var trip = `${travelFrom} to ${travelTo}`;
-
-  //   if (travelFrom == travelTo) {
-  //     console.log(trip);
-  //     agent.add(
-  //       `The trip departure point cannot be the same as the destination.`
-  //     );
-  //     // Quick reply suggestions
-  //     // agent.add("Choose your travel destination one more time!");
-  //     agent.add(new Suggestion(`Bulawayo`));
-  //     agent.add(new Suggestion(`Chegutu`));
-  //     agent.add(new Suggestion(`Gweru`));
-  //     agent.add(new Suggestion(`Harare`));
-  //     agent.add(new Suggestion(`Kadoma`));
-  //     agent.add(new Suggestion(`Kwekwe`));
-
-  //     //this starts here
-  //   } else if (travelFrom == null) {
-  //     console.log("Blank departure point");
-  //     agent.add(`The trip departure point cannot be empty.`);
-
-  //     // Quick reply suggestions
-  //     // agent.add("Choose your travel destination one more time!");
-  //     agent.add(new Suggestion(`Bulawayo`));
-  //     agent.add(new Suggestion(`Chegutu`));
-  //     agent.add(new Suggestion(`Gweru`));
-  //     agent.add(new Suggestion(`Harare`));
-  //     agent.add(new Suggestion(`Kadoma`));
-  //     agent.add(new Suggestion(`Kwekwe`));
-  //   }
-  // }
-
   // Starts here
-  function askBookingDate(agent) {
+  async function askBookingDate(agent) {
     let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
     let travelTo = agent.context.get("capture-date").parameters.travelTo;
 
@@ -115,7 +104,6 @@ app.post("/booking", express.json(), (req, res) => {
     var trip = `${travelFrom} to ${travelTo}`;
 
     if (travelFrom == travelTo) {
-      console.log(trip);
       agent.add(
         `The trip departure point cannot be the same as the destination.`
       );
@@ -152,17 +140,81 @@ app.post("/booking", express.json(), (req, res) => {
       // Suggestions
       agent.add(new Suggestion(`Start Over`));
       agent.add(new Suggestion(`Cancel`));
-    } else {
-      console.log(trip);
-      agent.add(
-        `On what date would you like to travel? \n\nExample: 30 January or next week Friday`
-      );
-    }
+    } 
+    else{
+    await db.collection("trips")
+        .where("to","==",travelTo)
+        .where("from","==",travelFrom)
+        .limit(1)
+        .get()
+        .then(snapshot => {
+          if (snapshot.size == 0){
+            agent.add("We currently do not cover the route you selected!");
+            agent.add(new Suggestion(`Start Over`));
+          agent.add(new Suggestion(`Cancel`));
+          }
+          else{
+            agent.add(
+              `On what date would you like to travel? \n\nExample: 30 January or next week Friday`
+            );
+          }
+      })
+      .catch(ex => {
+        console.log("Something is really wrong", ex);
+      });
+  }
+  }
+
+  async function askTime(agent){
+    let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
+    let travelTo = agent.context.get("capture-date").parameters.travelTo;
+    let travelDate = agent.context.get("capture-schedule").parameters[
+      "travel-date"
+    ];
+
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let day = days[Date(travelDate).getDay()];
+    let day = "Monday";
+    await db.collection("trips")
+      .where("to","=",travelFrom)
+      .where("from","=",travelTo)
+      .where("days." + day + ".id" , "==" , day)
+      .limit(1)
+      .get()
+      .then(snapshot => {
+        if (snapshot.size == 0){
+          agent.add("The date you selected has no coach services!");
+          agent.add(new Suggestion(`Start Over`));
+        agent.add(new Suggestion(`Cancel`));
+        }
+        else{
+          let fare =  snapshot.docs[0].data();
+          agent.add("Choose your preferred Departure time?");
+          fare.days.forEach((key,value)=>{
+            agent.add(new Suggestion(key));
+          });
+        }
+    });
   }
 
   // Get Traveller's Name
   function askTravellersName(agent) {
+    //make sure the date is valid
     agent.add("May I have your first name and surname to finish booking?");
+  }
+
+  function askEmail(agent){
+    agent.add("May i have your email address");
+  }
+
+  function askPaymentMethod(agent) {
+    agent.add("How will you settle this transaction?");
+    agent.add(new Suggestion("EcoCash"));
+    agent.add(new Suggestion("OneMoney"));
+  }
+
+  function askPaymentAccount(agent) {
+    agent.add("May i have you mobile money account number?");
   }
 
   //Get Traveller's Phone
@@ -211,9 +263,12 @@ app.post("/booking", express.json(), (req, res) => {
   }
 
   // Save the user data to the db
-  function confirmationMessage(agent) {
+  async function confirmationMessage(agent) {
     var firstname = agent.context.get("capture-fullname").parameters.firstname;
     var lastname = agent.context.get("capture-fullname").parameters.lastname;
+    var paymentEmail = agent.context.get("capture-email").parameters.email;
+    var paymentMethod = agent.context.get("capture-payment-method").parameters.paymentType;
+    var paymentAccount = agent.context.get("capture-payment-account").parameters.paymentAccount;
     var person = agent.context.get("capture-fullname").parameters.person;
     var phone = agent.context.get("confirm-ticket").parameters.phoneNumber;
     var travelFrom = agent.context.get("capture-to").parameters.travelFrom;
@@ -225,61 +280,121 @@ app.post("/booking", express.json(), (req, res) => {
       "travel-time"
     ];
 
-    // Save human readable date
-    const dateObject = new Date();
+    var amount = 0;
+    // get fare
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let day = days[Date(travelDate).getDay()];
+     await db.collection("trips")
+      .where("to","=",travelFrom)
+      .where("from","=",travelTo)
+      .where("days." + day + ".id" , "==" , day)
+      .limit(1)
+      .get()
+      .then(snapshot => {
+        if (snapshot.size == 0){
+          agent.add("We currently do not cover the route you select!");
+          agent.add(new Suggestion(`Start Over`));
+        agent.add(new Suggestion(`Cancel`));
+        }
+        else{
+          let fare =  snapshot.docs[0].data();
+        if (travelTime in fare.days[day]){
+          amount = fare.days[day][travelTime];
+        }         
+          else{
+            agent.add("The date you selected has no coach services!");
+            agent.add(new Suggestion(`Start Over`));
+          agent.add(new Suggestion(`Cancel`));
+          }
+        }
+    });
 
-    //new Unix TimeStamp
-    var momentTravelDate = moment(travelDate, "YYYY-MM-DD HH:mm:ss").toDate();
+    if (amount !== 0 && amount !== NaN && amount !== "undefined"){
+      // Save human readable date
+      const dateObject = new Date();
 
-    // moment().format('LLLL');
+      //new Unix TimeStamp
+      var momentTravelDate = moment(travelDate, "YYYY-MM-DD HH:mm:ss").toDate();
 
-    // Let's join firstname, lastname
-    var fullname = `${firstname} ${lastname}`;
-    var trip = `${travelFrom} to ${travelTo}`; // save trip instead of travelFrom and travelTo
+      // moment().format('LLLL');
 
-    //ticket // IDEA:
-    var ticketId = ticketID(); //uniqid.process();
+      // Let's join firstname, lastname
+      var fullname = `${firstname} ${lastname}`;
+      var trip = `${travelFrom} to ${travelTo}`; // save trip instead of travelFrom and travelTo
 
-    //reservation id
-    // var reservationId = uuidV1();
+      //ticket // IDEA:
+      var ticketId = ticketID(); //uniqid.process();
 
-    //Testing
-    console.log(
-      `\n\nNAME: ${
-        fullname || person
-      } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nDATE: ${travelDate} \nTIME: ${travelTime} \nTicket ID: ${ticketId} \nMoment Time: ${momentTravelDate}`
-    );
+      //reservation id
+      // var reservationId = uuidV1();
 
-    //Telegram and Messenger
-    agent.add(
-      `BOOKING CONFIRMATION \n\nFull Name: ${
-        fullname || person
-      } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
-    );
-
-    return db
-      .collection("tickets")
-      .add({
-        //firstname: firstname,
-        //lastname: lastname,
-        fullname: fullname,
-        person: person,
-        phone: phone,
-        trip: trip,
-        // dateOfTravel: travelDate,
-        momentTravelDate: momentTravelDate,
-        timeOfTravel: travelTime,
-        time: dateObject,
-        ticketId: ticketId,
-        // reservationId: uuidV1(),
-      })
-      .then(
-        (ref) =>
-          //fetching free slots
-
-          console.log("Ticket successfully added."),
-        agent.add(`Your ticket reservation was successful.`)
+      //Testing
+      console.log(
+        `\n\nNAME: ${
+          fullname || person
+        } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nDATE: ${travelDate} \nTIME: ${travelTime} \nTicket ID: ${ticketId} \nMoment Time: ${momentTravelDate}`
       );
+
+      agent.add(
+          `BOOKING CONFIRMATION \n\nFull Name: ${
+            fullname || person
+          } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
+    );
+
+      //Telegram and Messenger
+
+      let paynow = new Paynow("INTEGRATION_ID", "INTEGRATION_KEY");
+      let payment = paynow.createPayment(ticketId, paymentEmail);
+      payment.add(`Bus fare(${trip})`, amount);
+      paynow.sendMobile(payment, paymentAccount, paymentMethod.toLowerCase())
+        .then(function(response) {
+          if(response.success) {     
+          var paynowReference = response.pollUrl;
+              //save the id
+              var id = uuid();
+              agent.add(
+              `BOOKING CONFIRMATION \n\nFull Name: ${
+                fullname || person
+              } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
+        );
+              // save to db
+              return db
+              .collection("tickets")
+              .add({
+                //firstname: firstname,
+                //lastname: lastname,
+                fullname: fullname,
+                person: person,
+                phone: phone,
+                trip: trip,
+                fare: fare,
+                // dateOfTravel: travelDate,
+                momentTravelDate: momentTravelDate,
+                timeOfTravel: travelTime,
+                time: dateObject,
+                ticketId: ticketId,
+                // reservationId: uuidV1(),
+                paymentMethod: paymentMethod,
+                paymentAccount: paymentAccount,
+                paynowReference: paynowReference,
+                paymentEmail: paymentEmail,
+            })
+            .then(
+              (ref) =>
+                //fetching free slots
+
+                console.log("Ticket successfully added."),
+              agent.add(`Your ticket reservation was successful.`)
+            );
+          } else {
+            gent.add("Whoops something went wrong!");
+            console.log(response.error);
+          }
+      }).catch(ex => {
+        agent.add("Whoops something went wrong!");
+        console.log("Something is really wrong", ex)
+      });  
+  }
   }
 
   //finished
@@ -305,7 +420,6 @@ app.post("/booking", express.json(), (req, res) => {
       .then((doc) => {
         if (!doc.exists) {
           agent.add("No data found in the database!");
-          console.log(doc);
         } else {
           agent.add(doc.data().name);
         }
@@ -325,14 +439,18 @@ app.post("/booking", express.json(), (req, res) => {
   // intentMap.set("askBookingTo", askBookingTo);
   intentMap.set("askBookingDate", askBookingDate);
   intentMap.set("askName", askName);
-  intentMap.set("bitOff", bitOff);
   intentMap.set("askTravellersName", askTravellersName);
   intentMap.set("askTravellersPhone", askTravellersPhone);
+  intentMap.set("askEmail", askEmail);
+  intentMap.set("askPaymentMethod", askPaymentMethod);
+  intentMap.set("askPaymentAccount", askPaymentAccount);
+  intentMap.set("askTime", askTime);
   intentMap.set("done", done);
   // intentMap.set("confirmBooking", confirmBooking);
   intentMap.set("confirmationMessage", confirmationMessage);
   intentMap.set("viewTickets", viewTickets);
   intentMap.set("issuedTo", issuedTo);
+  intentMap.set("Ask.booking.schedule",askTime);
   intentMap.set("somethingNice", somethingNice);
   intentMap.set("somethingCrazy", somethingCrazy);
   // intentMap.set(

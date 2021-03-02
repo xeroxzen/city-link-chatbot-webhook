@@ -172,8 +172,8 @@ app.post("/booking", express.json(), (req, res) => {
       "travel-date"
     ];
 
-    //var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    //let day = days[Date(travelDate).getDay()];
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let day = days[Date(travelDate).getDay()];
     let day = "Monday";
     await db.collection("trips")
       .where("to","=",travelFrom)
@@ -189,10 +189,10 @@ app.post("/booking", express.json(), (req, res) => {
         }
         else{
           let fare =  snapshot.docs[0].data();
-        agent.add("Choose your preferred Departure time?");
-        //fare.days.forEach((key,value)=>{
-          //agent.add(new Suggestion(key));
-        //})
+          agent.add("Choose your preferred Departure time?");
+          fare.days.forEach((key,value)=>{
+            agent.add(new Suggestion(key));
+          });
         }
     });
   }
@@ -282,9 +282,8 @@ app.post("/booking", express.json(), (req, res) => {
 
     var amount = 0;
     // get fare
-    //var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    //let day = days[Date(travelDate).getDay()];
-    let day = "Monday";
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let day = days[Date(travelDate).getDay()];
      await db.collection("trips")
       .where("to","=",travelFrom)
       .where("from","=",travelTo)

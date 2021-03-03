@@ -357,8 +357,11 @@ app.post("/booking", express.json(), (req, res) => {
       );
 
       //Telegram and Messenger
+      var paynow_id = process.env.INTEGRATION_ID;
+      var paynow_key = process.env.INTEGRATION_KEY;
 
-      let paynow = new Paynow("INTEGRATION_ID", "INTEGRATION_KEY");
+      let paynow = new Paynow(paynow_id, paynow_key);
+
       let payment = paynow.createPayment(ticketId, paymentEmail);
       payment.add(`Bus fare(${trip})`, amount);
       paynow

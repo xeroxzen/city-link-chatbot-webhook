@@ -112,25 +112,6 @@ app.post("/booking", express.json(), (req, res) => {
       agent.add(new Suggestion(`Start Over`));
       agent.add(new Suggestion(`Cancel`));
 
-      // agent.setContext({
-      //   name: "askBookingDate",
-      //   lifespan: 5,
-      //   parameters: { travelTo: "" },
-      // });
-
-      //Quick Reply
-      // agent.add(
-      //   new QuickReply([
-      //     "Bulawayo",
-      //     "Chegutu",
-      //     "Gweru",
-      //     "Harare",
-      //     "Kadoma",
-      //     "Kwekwe",
-      //   ])
-      // );
-      // Ends here
-
       //this starts here
     } else if (travelFrom == null) {
       console.log("Blank departure point");
@@ -352,7 +333,7 @@ app.post("/booking", express.json(), (req, res) => {
 
       agent.add(
         `BOOKING CONFIRMATION \n\nFull Name: ${
-          fullname || person
+          fullname || person.name
         } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
       );
 

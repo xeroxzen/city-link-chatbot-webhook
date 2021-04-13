@@ -63,25 +63,24 @@ app.post("/booking", express.json(), (req, res) => {
     );
   }
 
-
   function askName(agent) {
     agent.add("I am an AI assistant, you can call me Lynx");
   }
 
   // travel destination booking error
- async function travelDestinationErrorChecking(agent) {
+  async function travelDestinationErrorChecking(agent) {
     let travelFrom = agent.context.get("capture-to").parameters.travelFrom;
     let travelTo = agent.context.get("capture-date").parameters.travelTo;
 
-  //simplify
+    //simplify
     var trip = `${travelFrom} to ${travelTo}`;
 
     if (travelFrom == travelTo) {
       agent.add(
-          `The trip departure point cannot be the same as the destination.`
+        `The trip departure point cannot be the same as the destination.`
       );
+    }
   }
- }
 
   // Starts here
   async function askBookingDate(agent) {
@@ -128,14 +127,12 @@ app.post("/booking", express.json(), (req, res) => {
       // Suggestions
       agent.add(new Suggestion(`Start Over`));
       agent.add(new Suggestion(`Cancel`));
-    } 
-    else{
-        agent.add(
-          `On what date would you like to travel? \n\nExample: 30 January or next week Friday`
-        );
-      }
+    } else {
+      agent.add(
+        `On what date would you like to travel? \n\nExample: 30 January or next week Friday`
+      );
+    }
   }
- 
 
   // Get Traveller's Name
   function askTravellersName(agent) {
@@ -143,18 +140,18 @@ app.post("/booking", express.json(), (req, res) => {
     agent.add("May I have your first name and surname to finish booking?");
   }
 
-  function askEmail(agent){
+  function askEmail(agent) {
     agent.add("May i have your email address");
   }
 
   function askPaymentMethod(agent) {
     agent.context.set({
-    'name':'backend-captured-email',
-    'lifespan': 6,
-    'parameters':{
-      'email':agent.query
-      }
-  });
+      name: "backend-captured-email",
+      lifespan: 6,
+      parameters: {
+        email: agent.query,
+      },
+    });
     agent.add("How will you settle this transaction?");
     agent.add(new Suggestion("EcoCash"));
     agent.add(new Suggestion("OneMoney"));
@@ -182,33 +179,50 @@ app.post("/booking", express.json(), (req, res) => {
     }
   }
 
-  async function checkPaymentStatus(agent){
-    const pollUrl = agent.context.get("capture_payment_status_information").parameters.pollUrl;
-    const amount = agent.context.get("capture_payment_status_information").parameters.amount;
-    const ticketID = agent.context.get("capture_payment_status_information").parameters.ticketID;
-    const trip = agent.context.get("capture_payment_status_information").parameters.trip;
-    const date = agent.context.get("capture_payment_status_information").parameters.date;
-    const time = agent.context.get("capture_payment_status_information").parameters.time;
-    const phone = agent.context.get("capture_payment_status_information").parameters.phone;
+  async function checkPaymentStatus(agent) {
+    const pollUrl = agent.context.get("capture_payment_status_information")
+      .parameters.pollUrl;
+    const amount = agent.context.get("capture_payment_status_information")
+      .parameters.amount;
+    const ticketID = agent.context.get("capture_payment_status_information")
+      .parameters.ticketID;
+    const trip = agent.context.get("capture_payment_status_information")
+      .parameters.trip;
+    const date = agent.context.get("capture_payment_status_information")
+      .parameters.date;
+    const time = agent.context.get("capture_payment_status_information")
+      .parameters.time;
+    const phone = agent.context.get("capture_payment_status_information")
+      .parameters.phone;
 
-    let paynow = new Paynow(process.env.PAYNOW_INTEGRATION_ID, process.env.PAYNOW_INTEGRATION_KEY);
+    let paynow = new Paynow(
+      process.env.PAYNOW_INTEGRATION_ID,
+      process.env.PAYNOW_INTEGRATION_KEY
+    );
     let response = await paynow.pollTransaction(pollUrl);
     let status = await response.status;
-    if (status==='paid' || status=='awaiting delivery' || status=='delivered') {
+    if (
+      status === "paid" ||
+      status == "awaiting delivery" ||
+      status == "delivered"
+    ) {
       agent.add(
-        `You have successfully booked you ticket! \r\n` + 
-        `TICKET ID: ${ticketID} \r\n` +
-        `AMOUNT: ZWL${amount} \r\n` +
-        `TRIP: ${trip} \r\n` +
-        `DATE: ${date} \r\n` +
-        `TIME: ${time} \r\n` +
-        `PHONE: ${phone} \r\n`
+        `You have successfully booked you ticket! \r\n` +
+          `TICKET ID: ${ticketID} \r\n` +
+          `AMOUNT: ZWL${amount} \r\n` +
+          `TRIP: ${trip} \r\n` +
+          `DATE: ${date} \r\n` +
+          `TIME: ${time} \r\n` +
+          `PHONE: ${phone} \r\n`
       );
     } else {
-      if (status == 'cancelled' || status=='refunded' || status=='disputed'){
+      if (
+        status == "cancelled" ||
+        status == "refunded" ||
+        status == "disputed"
+      ) {
         agent.add("Rate payment transaction successfully cancelled!");
-      }
-      else if(status == 'sent' || status=='pending' || status=='created')
+      } else if (status == "sent" || status == "pending" || status == "created")
         agent.add("You have not completed your payment!");
     }
   }
@@ -244,9 +258,13 @@ app.post("/booking", express.json(), (req, res) => {
   async function confirmationMessage(agent) {
     var firstname = agent.context.get("confirm-booking").parameters.firstname;
     var lastname = agent.context.get("confirm-booking").parameters.lastname;
-    var paymentEmail = agent.context.get("backend-captured-email").parameters.email;
-    var paymentMethod = agent.context.get("capture-payment-method").parameters['payment-method'];
-    var paymentAccount = agent.context.get("capture-payment-account").parameters.paymentAccount;
+    var paymentEmail = agent.context.get("backend-captured-email").parameters
+      .email;
+    var paymentMethod = agent.context.get("capture-payment-method").parameters[
+      "payment-method"
+    ];
+    var paymentAccount = agent.context.get("capture-payment-account").parameters
+      .paymentAccount;
     var person = agent.context.get("capture-fullname").parameters.person;
     var phone = agent.context.get("capture-fullname").parameters.phoneNumber;
     var travelFrom = agent.context.get("capture-to").parameters.travelFrom;
@@ -263,55 +281,54 @@ app.post("/booking", express.json(), (req, res) => {
 
     var amount = 0;
     var possible_trips = {
-      "bulawayo to harare": 2500.00,
-      "bulawayo to gweru": 1000.00,
-      "bulawayo to kadoma": 1800.00,
-      "bulawayo to kwekwe": 1500.00,
-      "bulawayo to chegutu": 1200.00,
-      "harare to gweru": 1500.00,
-      "harare to kadoma": 1500.00,
-      "harare to kwekwe": 1500.00,
-      "chegutu to kweru": 800.00,
-    "chegutu to kadoma": 700.00,
-    "chegutu to kwekwe": 900.00,
-      "gweru to kadoma": 500.00,
-    "gweru to kwekwe": 500.00,
-      "Kkwekwe to kadoma": 500.00
-    }
+      "bulawayo to harare": 2500.0,
+      "bulawayo to gweru": 1000.0,
+      "bulawayo to kadoma": 1800.0,
+      "bulawayo to kwekwe": 1500.0,
+      "bulawayo to chegutu": 1200.0,
+      "harare to gweru": 1500.0,
+      "harare to kadoma": 1500.0,
+      "harare to kwekwe": 1500.0,
+      "chegutu to gweru": 800.0,
+      "chegutu to kadoma": 700.0,
+      "chegutu to kwekwe": 900.0,
+      "gweru to kadoma": 500.0,
+      "gweru to kwekwe": 500.0,
+      "Kwekwe to kadoma": 500.0,
+    };
 
     if (trip.toLowerCase() in possible_trips)
       amount = possible_trips[trip.toLowerCase()];
-    else if(trip_vv.toLowerCase() in possible_trips)
+    else if (trip_vv.toLowerCase() in possible_trips)
       amount = possible_trips[trip_vv.toLowerCase()];
-    else
-      //for testing only
-      amount = 2000.00;
+    //for testing only
+    else amount = 2000.0;
 
     //if (amount !== 0 && amount !== NaN && amount !== "undefined"){
-      // Save human readable date
-      const dateObject = new Date();
+    // Save human readable date
+    const dateObject = new Date();
 
-      //new Unix TimeStamp
-      var momentTravelDate = moment(travelDate, "YYYY-MM-DD HH:mm:ss").toDate();
+    //new Unix TimeStamp
+    var momentTravelDate = moment(travelDate, "YYYY-MM-DD HH:mm:ss").toDate();
 
-      // moment().format('LLLL');
+    // moment().format('LLLL');
 
-      // Let's join firstname, lastname
-      var fullname = `${firstname} ${lastname}`;
-       // save trip instead of travelFrom and travelTo
+    // Let's join firstname, lastname
+    var fullname = `${firstname} ${lastname}`;
+    // save trip instead of travelFrom and travelTo
 
-      //ticket // IDEA:
-      var ticketId = ticketID(); //uniqid.process();
+    //ticket // IDEA:
+    var ticketId = ticketID(); //uniqid.process();
 
-      //reservation id
-      // var reservationId = uuidV1();
+    //reservation id
+    // var reservationId = uuidV1();
 
-      //Testing
-      console.log(
-        `\n\nNAME: ${
-          fullname || person
-        } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nDATE: ${travelDate} \nTIME: ${travelTime} \nTicket ID: ${ticketId} \nMoment Time: ${momentTravelDate}`
-      );
+    //Testing
+    console.log(
+      `\n\nNAME: ${
+        fullname || person
+      } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nDATE: ${travelDate} \nTIME: ${travelTime} \nTicket ID: ${ticketId} \nMoment Time: ${momentTravelDate}`
+    );
     /*
       agent.add(
           `BOOKING CONFIRMATION \n\nFull Name: ${
@@ -320,36 +337,39 @@ app.post("/booking", express.json(), (req, res) => {
     );
     */
 
-      //Telegram and Messenger
-      let paynow = new Paynow(process.env.PAYNOW_INTEGRATION_ID, process.env.PAYNOW_INTEGRATION_KEY);
-      let payment = paynow.createPayment(ticketId, paymentEmail);
-      payment.add(`Bus fare(${trip})`, amount);
-      response = await paynow.sendMobile(payment, paymentAccount, paymentMethod.toLowerCase());
-      if(response.success) {     
-          var paynowReference = response.pollUrl;
-            var id = uuid();
+    //Telegram and Messenger
+    let paynow = new Paynow(
+      process.env.PAYNOW_INTEGRATION_ID,
+      process.env.PAYNOW_INTEGRATION_KEY
+    );
+    let payment = paynow.createPayment(ticketId, paymentEmail);
+    payment.add(`Bus fare(${trip})`, amount);
+    response = await paynow.sendMobile(
+      payment,
+      paymentAccount,
+      paymentMethod.toLowerCase()
+    );
+    if (response.success) {
+      var paynowReference = response.pollUrl;
+      var id = uuid();
 
-            /*
-              agent.add(
-              `BOOKING CONFIRMATION \n\nFull Name: ${
-                fullname || person
-              } \nPHONE NUMBER: ${phone} \nTRIP: ${trip} \nTRAVEL DATE: ${momentTravelDate} \nTRAVEL TIME: ${travelTime} \nTICKET ID: ${ticketId} \n\nSafe Travels with City Link Luxury Coaches`
-        );*/
-          // save to db
-        agent.add("A popup will appear, enter your pn number to complete the payment. After making your payment, click CHECK PAYMENT STATUS");
+      // save to db
+      agent.add(
+        "A popup will appear, enter your pn number to complete the payment. After making your payment, click CHECK PAYMENT STATUS"
+      );
       agent.add(new Suggestion("Check payment status"));
-        agent.context.set('capture_payment_status_information',5,{
-            "pollUrl": paynowReference, 
-            "ticketID": ticketId,
-            "amount": amount,
-            "trip": trip,
-            "date": momentTravelDate,
-            "time": travelTime,
-            "phone": phone
-        });
-        
-    return;
-    /*return db
+      agent.context.set("capture_payment_status_information", 5, {
+        pollUrl: paynowReference,
+        ticketID: ticketId,
+        amount: amount,
+        trip: trip,
+        date: momentTravelDate,
+        time: travelTime,
+        phone: phone,
+      });
+
+      return;
+      /*return db
       .collection("tickets")
       .add({
                 //firstname: firstname,
@@ -379,7 +399,7 @@ app.post("/booking", express.json(), (req, res) => {
       gent.add("Whoops something went wrong!");
       console.log(response.error);
     }
-  //}
+    //}
   }
 
   //finished
